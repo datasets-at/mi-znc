@@ -1,0 +1,3 @@
+0.1.0: First image version
+- ZNC v1.4
+- configure the listening port via customer_metadata znc_listen_port=7777

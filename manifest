@@ -1,0 +1,7 @@
+name="znc"
+organization="SmartOS"
+brand="SmartMachine"
+version="0.1.0"
+description="ZNC - an easy to use IRC bouncer"
+homepage="https://github.com/datasets-at/mi-znc"
+users="root admin"

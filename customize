@@ -1,0 +1,56 @@
+#!/usr/bin/bash
+
+PATH=/opt/local/gnu/bin:/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin
+
+# Exit if any commands fail
+set -o errexit
+
+# Configuring image specific packages
+echo "* Configuring image specific packages.";
+
+/usr/sbin/useradd -g other -m -s /usr/bin/bash znc
+
+if ! projects -l znc >/dev/null 2>&1; then
+  LANG=C projadd -U znc -G other \
+    -K "process.max-file-descriptor=(basic,16384,deny)" \
+    -c "ZNC IRC bouncer" znc
+fi
+
+svccfg import /root/znc.xml
+
+# Clean up
+echo "* Cleaning up."
+pkgin clean
+rm -rf /root/*
+
+/usr/bin/rm -rf /opt/local
+/usr/bin/curl -k http://pkgsrc.joyent.com/packages/SmartOS/bootstrap/bootstrap-2014Q2-i386.tar.gz | /usr/bin/gzcat | /usr/bin/tar -xf - -C /
+
+pkg_add http://pkgsrc.joyent.com/packages/SmartOS/2014Q2/i386/All/smtools-20140905.tgz
+pkg_add http://pkgsrc.joyent.com/packages/SmartOS/2014Q2/i386/All/zoneinit-1.6.8.tgz
+pkg_add http://pkgsrc.joyent.com/packages/SmartOS/2014Q2/i386/All/rsyslog-8.2.2nb4.tgz
+pkg_add http://pkgsrc.joyent.com/packages/SmartOS/2014Q2/i386/All/sudo-1.7.10p8.tgz
+
+cat > /opt/local/etc/rsyslog.conf << EOF
+#
+# Sample rsyslog configuration file
+#
+
+$ModLoad immark
+$ModLoad imsolaris
+# $ModLoad imtcp
+# $ModLoad imudp
+
+*.err;kern.notice;auth.notice                   /dev/sysmsg
+*.err;kern.debug;daemon.notice;mail.crit        /var/adm/messages
+*.alert;kern.err;daemon.err                     :omusrmsg:operator
+*.alert                                         :omusrmsg:root
+*.emerg                                         :omusrmsg:*
+
+mail.debug                                      /var/log/syslog
+mail.info                                       /var/log/maillog
+auth.info                                       /var/log/authlog
+EOF
+
+# Prepare image for provisioning
+sm-prepare-image -y
